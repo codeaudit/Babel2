@@ -173,13 +173,20 @@
           read-file-as-string
 	  read-until
           stringify
-          remove-punctuation))
+          remove-punctuation
+          lisp->camel-case
+          camel-case->lisp
+          remove-newlines))
 
 (defun punctuation-p (char) (find char "*_.,;:`!?#-()\\\""))
 
 (defun remove-punctuation (string)
   "Replace punctuation with spaces in string."
   (substitute-if #\space #'punctuation-p string))
+
+(defun remove-newlines (string)
+  "removes newlines inside string"
+  (cl-ppcre:regex-replace-all "\\n" string ""))
 
 (defun downcase (str)
   (format nil "~(~a~)" str))
@@ -255,6 +262,45 @@
 (defmethod read-until ((string string) (until-part string) &key (start 0) (from-end nil))
   (subseq string start (search until-part string 
 			       :start1 start :from-end from-end)))
+
+(defun camel-case->lisp (camel-string)
+  "Insert - between lowercase and uppercase chars
+   and make everything uppercase"
+  (declare (string camel-string))
+  (let ((*print-pretty* nil))
+    (with-output-to-string (result)
+      (loop with last-was-lowercase
+            for c across camel-string
+            when (and last-was-lowercase
+                      (upper-case-p c))
+            do (princ "-" result)
+            if (lower-case-p c)
+            do (setf last-was-lowercase t)
+            else
+            do (setf last-was-lowercase nil)
+            do (princ (char-upcase c) result)))))
+
+(defun lisp->camel-case (string &key (from-first t))
+  "Remove - between words and make all words uppercase, except the first.
+   When from-first is true, the first word is also uppercase."
+  (declare (string string))
+  (let ((*print-pretty* nil))
+    (with-output-to-string (result)
+      (loop with last-was-dash
+            for c across string
+            for i below (length string)
+            if (eql c #\-)
+            do (setf last-was-dash t)
+            else
+            do (progn
+                 (cond
+                  ((and (= i 0) from-first)
+                   (princ (char-upcase c) result))
+                  (last-was-dash
+                   (princ (char-upcase c) result))
+                  (t
+                   (princ (char-downcase c) result)))
+                 (setf last-was-dash nil))))))
 
 
 ;; ############################################################################

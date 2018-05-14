@@ -1,9 +1,27 @@
 (in-package :utils)
 
-(export '(list-of-strings->string))
+(export '(mapconcat list-of-strings->string))
 
-(defun list-of-strings->string (list)
-  (format nil "~{~a~^ ~}" list))
+(defun mapconcat (function sequence separator)
+  "mapconcat applies function to each element of sequence;
+   the results, which must be sequences of characters (strings, vectors, or lists),
+   are concatenated into a single string return value.
+   Between each pair of result sequences, mapconcat inserts the characters
+   from separator, which also must be a string, or a vector or list of characters.
+   The argument function must be a function that can take one argument and
+   returns a sequence of characters: a string, a vector, or a list.
+   The argument sequence can be any kind of sequence except a char-table;
+   that is, a list, a vector, a bool-vector, or a string."
+  (format nil (format nil "~~{~~a~~^~a~~}" separator)
+          (mapcar function sequence)))
+
+(defun list-of-strings->string (list &key (separator " "))
+  "Turn a list of strings into a single string. The indidual strings are separated by sep"
+  ;; check the input
+  (assert (every #'identity (mapcar #'stringp list)))
+  (assert (stringp separator))
+  ;; concatenate the strings
+  (mapconcat #'identity list separator))
 
 
 (export '(listify))
@@ -53,7 +71,7 @@ nil."
   (declare (type list list))
   (assoc obj list :test test))
 
-(declaim (inline assqv))
+(declaim (inline v))
 
 (defun assqv (obj list &key (test #'eq))
   "Calls assoc with eq as test predicate, and returns cdr of found value or nil."
@@ -220,6 +238,7 @@ nil."
 	  pushend
           filter ;; this export is only useful for the class 'filter elsewhere, not for the function filter deprecated here
 	  toggle
+          insert-after
 	  mappend
 	  mapunion
 	  listXlist
@@ -239,6 +258,11 @@ nil."
           remove-first
           remove-nth
           cartesian-product))
+
+(defun insert-after (lst index newelt)
+  "Insert an elt into a list after a certain position."
+  (push newelt (cdr (nthcdr index lst)))
+  lst)
 
 (defun remove-first (item sequence &key (test 'equal) test-not)
   (cond
@@ -485,6 +509,20 @@ element for which the sought value satisfies the test"
   (loop for el across array
        collect el))
 
+(export '(sublist-position))
+
+(defun sublist-position (lst1 lst2 &key (n 0) (test #'equal) (key #'identity))
+  "Checks whether a sequence occurs in a second list and returns its starting position."
+  (cond ((or (null lst2)
+             (length> lst1 lst2))
+         nil)
+        ((funcall test lst1 (subseq (mapcar key lst2) 0 (+ (length lst1))))
+         n)
+        (t
+         (sublist-position lst1 (rest lst2) :n (1+ n) :test test :key key))))
+;; (sublist-position '(c d) '(a b c d))
+;; ==> 2
+
 ;; ############################################################################
 ;; list creation utilities:
 ;; ----------------------------------------------------------------------------
@@ -507,18 +545,22 @@ element for which the sought value satisfies the test"
 (defun full-list (&key (dimensions nil) (fill-value nil))
   "Returns a list in given dimensions, filled with fill-value."
   (_full-list :dimensions dimensions :fill-value (lambda () fill-value)))
+
 (defun zeros-list (&key (dimensions nil))
-  "Returns a list in given dimensions, filled with 0".
-  (_full-list :dimensions dimensions :fill-value (lambda () 0)))
+  "Returns a list in given dimensions, filled with 0."
+  (full-list :dimensions dimensions :fill-value 0))
+
 (defun ones-list (&key (dimensions nil))
   "Returns a list in given dimensions, filled with 1."
-  (_full-list :dimensions dimensions :fill-value (lambda () 1)))
+  (full-list :dimensions dimensions :fill-value 1))
+
 (defun nil-list (&key (dimensions nil))
   "Returns a list in given dimensions, filled with nil."
-  (_full-list :dimensions dimensions :fill-value (lambda () nil)))
+  (full-list :dimensions dimensions :fill-value nil))
+
 (defun randint (&key (start 0) (end (1+ start)) (dimensions nil))
-  "Returns a list in given dimensions, filled with random integers in [start, end]."
-  (_full-list :dimensions dimensions :fill-value (lambda () (+ start (random end)))))
+  "Returns a list in given dimensions, filled with random integers in [start, end["
+  (_full-list :dimensions dimensions :fill-value (lambda () (+ start (random (- end start))))))
 
 
    
@@ -936,11 +978,16 @@ element for which the sought value satisfies the test"
 ;; boolean utilities:
 ;; ----------------------------------------------------------------------------
 
-(export '(always))
+(export '(always always-list))
 
 (defun always (&rest elements)
   "Returns true if all elements evaluate to true."
   (loop for element in elements
+        always element))
+
+(defun always-list (sequence)
+  "Returns true if all elements of a sequence evaluate to true"
+  (loop for element in sequence
         always element))
 
 ;; ############################################################################
