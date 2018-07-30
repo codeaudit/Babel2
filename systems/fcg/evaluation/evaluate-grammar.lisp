@@ -279,8 +279,8 @@ standard sentences"
                                             (loop for pr in sentence-processing-results
                                                   collect (longest-common-substring (pr-gold-standard-sentence processing-result)
                                                                                     (pr-formulated-sentence pr)))))
-                                       (list (average list-with-nrs-of-lcs-scores)
-                                             (stdev list-with-nrs-of-lcs-scores))))
+                                       (list (average (mapcar #'parse-integer (alexandria:flatten list-with-nrs-of-lcs-scores)))
+                                             (stdev (mapcar #'parse-integer (alexandria:flatten list-with-nrs-of-lcs-scores))))))
          :word-level-edit-distance (when (pr-gold-standard-sentence processing-result)
                                      (let ((list-with-nrs-of-wle-scores
                                             (loop for pr in sentence-processing-results

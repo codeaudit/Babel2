@@ -1,7 +1,7 @@
 
 (in-package :fcg)
 
-(export '(constructions size clear find-cxn add-cxn delete-cxn cxn-added cxn-deleted
+(export '(constructions size clear find-cxn add-cxn delete-cxn cxn-added cxn-deleted cxn-pathnames
           set-expansion-data-for-type get-expansion-data-for-type expansion-data configuration visualization-configuration))
 
 (defclass construction-inventory ()
@@ -38,6 +38,11 @@ this is the name that you use in the def-fcg-constructions macro.")
     :initform '(subunits)
     :initarg :hierarchy-features
     :accessor hierarchy-features)
+   (cxn-pathnames
+    :type hash-table
+    :initform (make-hash-table)
+    :initarg :cxn-pathnames
+    :accessor cxn-pathnames)
    (original-cxn-set
    ;; This is a pointer back to the fcg-light construction-inventory to which this construction-set belongs
    ;; (to which is appears in the slot 'processing-cxn-inventory'). So, if you know which cxn applied,
@@ -172,8 +177,10 @@ is overwritten."
 
 (defmethod add-cxn :after ((construction construction)
                            (construction-inventory construction-inventory) &key)
-  ;(notify cxn-added construction construction-inventory)
-  )
+  (let ((pathname (find-data construction :cxn-pathname)))
+    (setf (gethash (name construction) (cxn-pathnames construction-inventory))
+          pathname)))
+;(notify cxn-added construction construction-inventory)
 
 
 
@@ -223,6 +230,7 @@ is overwritten."
   (unless (string= (type-of source) 'fcg-construction-set) 
     (setf (configuration destination) (copy-object (configuration source)))
     (setf (blackboard destination) (blackboard source)))
+  (setf (cxn-pathnames destination) (copy-object (cxn-pathnames destination)))
   (setf (hierarchy-features destination) (copy-list (hierarchy-features source)))
   (setf (original-cxn-set destination) (original-cxn-set source))
   

@@ -274,18 +274,21 @@ dot."
   (:documentation "Should return a valid s-dot expression for the
   object. If in doubt use s-dot:check-syntax function."))
 
-(defmethod make-s-dot ((tree tree) &key (rankdir "TB"))
+(defmethod make-s-dot ((tree tree) &key (rankdir "TB") (key #'id) (arrowdir "forward"))
   "rankdir is a s-dot command that specifies the orientation of the
-tree. Set it to LR to draw from left to right."
+   tree. Set it to LR to draw from left to right.
+   arrowdir is a s-dot command that specifies the orientation of the
+   arrowhead on the edge. Set it to forward, back, both or none."
   `(s-dot::graph ((s-dot::rankdir ,rankdir))
                  (s-dot::cluster ((s-dot::id "tree")))
                  ,@(loop for node in (nodes tree)
-                     append `((s-dot::node ((s-dot::id ,(mkdotstr (id node)))
-                                            (s-dot::label ,(string-for-s-dot node))))))
+                         append `((s-dot::node ((s-dot::id ,(mkdotstr (id node)))
+                                                (s-dot::label ,(string-for-s-dot (funcall key node)))))))
                  ,@(loop for node in (nodes tree)
-                      append (loop for child in (children node)
-                                collect `(s-dot::edge 
-                                          ((s-dot::from ,(mkdotstr (id node)))
-                                           (s-dot::to ,(mkdotstr (id child)))))))))
+                         append (loop for child in (children node)
+                                      collect `(s-dot::edge 
+                                                ((s-dot::from ,(mkdotstr (id node)))
+                                                 (s-dot::to ,(mkdotstr (id child)))
+                                                 (s-dot::dir ,arrowdir)))))))
 
 

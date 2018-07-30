@@ -90,7 +90,7 @@
 
  ;; 1b. Collect NOUN-CHUNK-form-constraints
     #+odycceus
-    (dolist (chunk-as-list (odycceus::get-noun-chunks utterance))
+    (dolist (chunk-as-list (get-penelope-noun-chunks utterance))
       (let* ((unit-name (make-const "chunk" nil))
              (chunk (utils::list-of-strings->string chunk-as-list))
              (init-chunk-index (position (odycceus::first-word chunk) chunk-as-list :test #'string=)))
@@ -112,6 +112,7 @@
                                              (boundaries ,word-boundaries)
                                              (form ,(cons (cons 'sequence (reverse sequence))
                                                           form-constraints))
+                                             
                                              (syn-cat ())))
                           :right-pole '((root)))))
       (set-data transient-structure :sequence (reverse sequence)) ;; Is this still necessary?

@@ -130,7 +130,7 @@
 ;; ----------------------------------------------------------------------------
 
 #-ecl
-(export '(directory-pathname-p))
+(export '(directory-pathname-p empty-directory-p delete-all-files-in-folder))
 
 (defun component-present-p (value)
   (and value (not (eql value :unspecific))))

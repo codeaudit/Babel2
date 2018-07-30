@@ -20,6 +20,7 @@
 *.asd~
 *.ps
 *.64xfasl
+*.lisp#
 
 .DS_Store
 **/.tmp

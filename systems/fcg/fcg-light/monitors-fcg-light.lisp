@@ -144,8 +144,14 @@
                  (html-pprint meaning))))
      
 (define-event-handler (trace-fcg produce-all-finished)
-  (add-element `((h3) ,(format nil "Utterances: &quot;~{~{~a~^ ~}~^, ~}&quot;" utterances)))
-  (add-element `((p) " ")))
+  ;; Print all utterances as a <ul> instead of a single line
+  (add-element '((h3) "Utterances:"))
+  (add-element `((h3)
+                 ((ul)
+                  ,@(loop for utterance in utterances
+                          collect `((li) ,(format nil "&quot;~{~a~^ ~}&quot;" utterance)))))))
+  ;(add-element `((h3) ,(format nil "Utterances: &quot;~{~{~a~^ ~}~^, ~}&quot;" utterances)))
+  ;(add-element `((p) " ")))
 
 (define-event-handler (trace-fcg parse-started)
   (when (get-configuration *default-visualization-configuration* :show-upper-menu)

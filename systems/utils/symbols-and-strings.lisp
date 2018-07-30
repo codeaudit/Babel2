@@ -173,12 +173,18 @@
           read-file-as-string
 	  read-until
           stringify
+          punctuation-p
           remove-punctuation
           lisp->camel-case
           camel-case->lisp
-          remove-newlines))
+          remove-newlines
+          remove-spurious-spaces))
 
 (defun punctuation-p (char) (find char "*_.,;:`!?#-()\\\""))
+
+(defun remove-spurious-spaces (sentence-as-string)
+  (let ((list-representation (split-sequence:split-sequence #\Space sentence-as-string :remove-empty-subseqs t)))
+    (format nil "~{~a~^ ~}" list-representation)))
 
 (defun remove-punctuation (string)
   "Replace punctuation with spaces in string."
@@ -344,8 +350,9 @@ string will consist solely of decimal digits and ASCII letters."
 (export '(hyphenize))
 
 (defun hyphenize (string-with-spaces)
-  (string-replace string-with-spaces " " "-")
-  )
+  (if (find #\space string-with-spaces)
+    (string-replace string-with-spaces " " "-")
+    string-with-spaces))
 
 ;;(hyphenize "the ocean")
 

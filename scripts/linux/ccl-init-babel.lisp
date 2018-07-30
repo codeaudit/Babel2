@@ -12,3 +12,6 @@
 ;;; load babel2
 (load "/home/<USER>/Babel2/libraries/asdf")
 (load "/home/<USER>/Babel2/init-babel")
+
+;;; load cl-ppcre
+(ql:quickload :cl-ppcre)

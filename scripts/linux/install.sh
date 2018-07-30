@@ -137,12 +137,7 @@ echo "You can also use the professional editor Lispworks for development."
 echo "However, the free version of Lispworks won't work with Babel due to memory limits."
 echo "We can't install Lispworks for you, but we can set up the config for Babel."
 echo
-echo "Note that you will need to install additional packages when using Sublime Text to enjoy the full Lisp experience"
-echo "First, install Package Control. Use this to install the following packages:"
-echo "SublimeREPL, rainbowth, Load File to REPL, BracketHighlighter and lispindent"
-echo "PLEASE BE NOTED that development in Sublime Text is not fully supported by our team"
-echo
-read -n1 -rsp "Press S to skip, L for Lispworks, T for Sublime Text, Ctrl+C to abort, or any other key for Emacs: " KEY
+read -n1 -rsp "Press S to skip, L for Lispworks, Ctrl+C to abort, or any other key for Emacs: " KEY
 echo
 if [ "$KEY" = 'S' -o "$KEY" = 's' ]; then
 	echo "Skipping editor."
@@ -151,13 +146,6 @@ elif [ "$KEY" = 'L' -o "$KEY" = 'l' ]; then
 	echo
 	echo "== 4: Lispworks settings =="
 	home_settings ".lispworks" "lispworks-babel" "Lispworks"
-	echo
-elif [ "$KEY" = 'T' -o "$KEY" = 't' ]; then
-	echo 
-	echo "== 4: Sublime Text editor =="
-	wget -qO - https://download.sublimetext.com/sublimehq-pub.gpg | sudo apt-key add -
-	echo "deb https://download.sublimetext.com/ apt/stable/" | sudo tee /etc/apt/sources.list.d/sublime-text.list
-	sudo apt update && sudo apt install sublime-text
 	echo
 else
 	echo
@@ -201,24 +189,10 @@ if [ $? -eq 0 ]; then
 	echo "Babel2 detected, skipping."
 else
 	echo "Babel2 has not been found."
-	echo "You can download Babel2 as a zip archive or clone it from Git"
-	echo "To get the latest version, we recommend cloning from Git"
-	read -n1 -rsp "Press Z for the zip archive or C for the Git clone: " KEY
-	if [ "$KEY" = 'Z' -o "$KEY" = 'z' ]; then
-		echo "Downloading the zip archive"
-		## curl -s https://api.github.com/repos/EvolutionaryLinguisticsAssociation/Babel2/tags | jq '.[0].zipball_url'
-		apt_install "unzip" "unzip"
-		(wget https://github.com/EvolutionaryLinguisticsAssociation/Babel2/archive/v2.0.6.zip &&
-			unzip v2.0.6.zip -d ~/Babel2 &&
-			mv ~/Babel2/Babel2-2.0.6 ~/Babel2 &&
-			rm v2.0.6.zip)
-		echo "Installed."
-	elif [ "$KEY" = 'C' -o "$KEY" = 'c' ]; then
-		echo "Cloning the git repository"
-		apt_install "git" "git"
-		(git clone https://github.com/EvolutionaryLinguisticsAssociation/Babel2.git ~/Babel2)
-		echo "Installed"
-	fi
+	echo "Cloning the latest version from Git..."
+	apt_install "git" "git"
+	(git clone https://github.com/EvolutionaryLinguisticsAssociation/Babel2.git ~/Babel2)
+	echo "Installed"
 fi
 echo
 

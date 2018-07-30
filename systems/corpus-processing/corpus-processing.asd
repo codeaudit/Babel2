@@ -1,8 +1,9 @@
 (in-package :asdf)
 
 (defsystem :corpus-processing
-  :depends-on (:utils)
+  :depends-on (:utils :cl-fad :cl-json :trivial-timeout)
   :components 
-  ((:file "corpus-processing")))
+  (#+:lw(:file "corpus-processing")
+   (:file "json-corpus-processing")))
 	
 

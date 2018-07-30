@@ -14,6 +14,7 @@
           get-penelope-dependency-analysis
           get-penelope-tokens
           get-penelope-sentence-tokens
+          get-penelope-text-tokens
           get-word-similarity
           get-word-embeddings
           curl-json
@@ -182,6 +183,25 @@ of strings, each list corresponding to a named entity."
 ;;(run-penelope-sentence-tokenizer "Paul kicked the ball. Mary caught it.")
 
 
+(defun run-penelope-text-tokenizer (texts &key (model "en"))
+  "Call the penelope server to get the dependency labels all words in a sentence."
+  (unless (listp texts)
+    (error "The function <run-penelope-text-tokenizer> expects a list as input"))
+  (let ((server-result
+         (curl-json "https://www.fcg-net.org/penelope/nlp/sents_toks" (encode-json-to-string-for-shell `((:texts . ,texts) (:model . ,model))))))
+    server-result))
+
+(defun get-penelope-text-tokens (texts &key (model "en"))
+  "Returns for every text, a list with sentences, which are on its turn a list of tokens."
+  (run-penelope-text-tokenizer texts :model model))
+
+(get-penelope-text-tokens '("This is one article. And it has two sentences"
+                            "Then there is a second article. It talks about Mr. Smith."))
+
+;;(run-penelope-sentence-tokenizer "Paul kicked the ball. Mary caught it.")
+
+
+
 ;;;;;;;;;;;;;;;;;;;;;
 ;; Lemmatizer  ;;
 ;;;;;;;;;;;;;;;;;;;;;
@@ -237,7 +257,7 @@ of strings, each list corresponding to a noun chunk."
              (rest (first server-result))))
       (rest (first server-result)))))
   
-;(run-penelope-sentence-word-embeddings "lock battle 2022à" :source 'guardian-data)
+;(run-penelope-sentence-word-embeddings "lock battle 2022à" :source 'glove)
 
 (defun get-word-embeddings (sentence &key (source 'glove) (lemmatize? nil)) ;;or guardian-data
   "Get the word embeddings for a sentence in a '((word1 vector1) (word2 vector2)) format."
@@ -250,7 +270,9 @@ of strings, each list corresponding to a noun chunk."
           for vector = (rest (assoc :vector word-embedding))
           collect (list token vector))))
 
-;(get-word-embeddings "hello world" :source 'glove)
+;(cosine-similarity (second (first (get-word-embeddings "girl" :source 'glove)))
+;                   (second (first (get-word-embeddings "girls" :source 'glove))))
+
 ;(get-word-embeddings "hello world" :source 'guardian-data)
 
 (defun get-word-similarity (word1 word2 &key (source 'glove) (lemmatize? nil)) 
@@ -275,7 +297,7 @@ of strings, each list corresponding to a noun chunk."
          (vector2 (utils::multiply-list-of-vectors vectors-for-phrase-2)))
     (utils::cosine-similarity vector1 vector2)))
 
-;;(get-phrase-similarity "Turnball" "Trump" :source 'guardian-data :lemmatize? t)
+;;(get-phrase-similarity "Mickey Mouse" "Trump" :source 'glove :lemmatize? nil)
 ;;(get-phrase-similarity "handsome boy" "pretty girl" :source 'glove)
 
 

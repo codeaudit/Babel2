@@ -1,7 +1,7 @@
 ;; Portuguese grammar for clitics
 ;; Tânia Marques and Katrien Beuls (2016)
 
-;(asdf:operate 'asdf:load-op 'portuguese-grammar)
+;(ql:quickload :portuguese-grammar)
 (in-package :fcg)
 
 
@@ -37,7 +37,7 @@
 
 (set-configuration (visualization-configuration *portuguese-corpus-grammar*) :with-search-debug-data t)
 ;(add-element (make-html *portuguese-corpus-grammar*))
-(activate-monitor trace-fcg-light)
+(activate-monitor trace-fcg)
 (clear-page))
 
 

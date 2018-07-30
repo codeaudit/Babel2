@@ -9,13 +9,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Load with:
-;; (asdf:operate 'asdf:load-op :corpus-processing)
+;; (ql:quickload :corpus-processing)
 
 (in-package :utils)
 
 (export '(process-corpus))
 
 (defun process-corpus (&key function
+                            function-kwargs
                             inputfile
                             outputfile
                             (number-of-threads 4)
@@ -29,6 +30,7 @@
   (format t "~%~%Inputfile: ~a" inputfile)
   (format t "~%Outputfile: ~a" outputfile)
   (format t "~%Applying function: ~a" function)
+  (format t "~%Passing function arguments: ~a" function-kwargs)
   (format t "~%~%Threads: ~a" number-of-threads)
   (format t "~%Lines per thread: ~a" number-of-lines-per-thread)
   (format t "~%Lines per batch: ~a" (* number-of-threads number-of-lines-per-thread))
@@ -51,12 +53,12 @@
       (with-open-file (stream inputfile)
         (dotimes (n number-of-complete-batches)
           (format t "~%Started complete batch ~a/~a..." (+ 1 n) number-of-complete-batches)
-          (process-batch-multi-threaded function stream
+          (process-batch-multi-threaded function function-kwargs stream
                                         number-of-threads number-of-lines-per-batch outputfile)
           (format t "~%(Finished)"))
         (when (> number-of-lines-in-last-batch 0)
           (format t "~%Started extra batch...")
-          (process-batch-multi-threaded function stream
+          (process-batch-multi-threaded function function-kwargs stream
                                         number-of-threads number-of-lines-in-last-batch outputfile)
           (format t "~%(Finished)"))))
     (let ((finish-time (get-universal-time)))
@@ -66,7 +68,7 @@
     (format t "~%~%***************** Finished Corpus Processing *****************~%~%"))
 
 
-(defun process-batch-multi-threaded (function stream number-of-threads number-of-lines outputfile)
+(defun process-batch-multi-threaded (function function-kwargs stream number-of-threads number-of-lines outputfile)
   "takes a batch of lines, divides them over threads, applies function on each line and writes
    the output to outputfile"
   (let ((list-of-thread-batches nil))
@@ -86,7 +88,7 @@
         (let* ((mailbox (make-mailbox :name "batch-mailbox"))
                (thread-list (mapcar #'(lambda (thread-batch)
                                         (process-run-function "line-processing" '()
-                                                              #'process-list-of-lines function thread-batch mailbox))
+                                                              #'process-list-of-lines function function-kwargs thread-batch mailbox))
                                     list-of-thread-batches))
                (mailbox-messages nil))
           ;; Wait for messages
@@ -128,9 +130,15 @@
                                 :remove-empty-subseqs t)))))
     number-of-lines))
   
-(defun process-list-of-lines (function list-of-lines mailbox)
+(defun process-list-of-lines (function function-kwargs list-of-lines mailbox)
   "applies function to list-of-lines and returns the processed list-of-lines"
-  (mailbox-send mailbox (cons (car list-of-lines) (mapcar function (cdr list-of-lines)))))
+  (mailbox-send mailbox
+                (cons (car list-of-lines)
+                      (mapcar #'(lambda (line)
+                                  (if function-kwargs
+                                    (apply function line function-kwargs)
+                                    (funcall function line)))
+                              (cdr list-of-lines)))))
   
 
 

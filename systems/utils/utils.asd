@@ -28,6 +28,7 @@
    (:file "timer" :depends-on ("package"))
    (:file "types" :depends-on ("package"))
    (:file "write-to-latex" :depends-on ("package"))
+   (:file "clos" :depends-on ("package"))
    (:file "event-dispatcher")
    (:file "ssh-scp")
    (:module tests

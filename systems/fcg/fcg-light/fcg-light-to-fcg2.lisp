@@ -80,7 +80,8 @@
                                                              (feature-types *fcg-constructions*)
                                                              '((args sequence)
                                                                (form set-of-predicates)
-                                                               (meaning set-of-predicates))))
+                                                               (meaning set-of-predicates)
+                                                               (redundant-meaning set-of-predicates))))
                                      processing-cxn-inventory)
   "takes an FCG-cxn as input, and returns a processing-cxn"
   (let ((cxn-name (name cxn))

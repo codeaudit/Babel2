@@ -35,9 +35,11 @@
 	 (unify-tags f1 f2 bsl #'(lambda (f1 f2 bsl &key cxn-inventory)
 				   (unify-features f1 f2 bsl :cxn-inventory cxn-inventory))
                      :cxn-inventory cxn-inventory))
-	((eq 'TAG-ALL (unit-name f1))
+        #|
+        ((eq 'TAG-ALL (unit-name f1))
 	 (unify-tag-all f1 f2 bsl #'(lambda (f1 f2 bsl &key cxn-inventory)
 				      (unify-features f1 f2 bsl :cxn-inventory cxn-inventory)) :cxn-inventory cxn-inventory))
+       |#
 	((string= (feature-name f1) (feature-name f2))
 	 (case (feature-name f1)
 	   ;; (meaning (unify-component-values (feature-value f1) (feature-value f2) bsl))
@@ -114,8 +116,8 @@
 (defun merge-features (f1 f2 bindings &key cutoff cxn-inventory)
   (cond ((eq 'TAG (feature-name f1))
 	 (merge-tags f1 f2 bindings :merge-fn #'merge-features :cutoff cutoff :cxn-inventory cxn-inventory))
-	((eq 'TAG-ALL (feature-name f1))
-	 (merge-tag-all f1 f2 bindings :merge-fn #'merge-features :cutoff cutoff :cxn-inventory cxn-inventory))
+;;	((eq 'TAG-ALL (feature-name f1))
+;;	 (merge-tag-all f1 f2 bindings :merge-fn #'merge-features :cutoff cutoff :cxn-inventory cxn-inventory))
 	((eq (feature-name f1) (feature-name f2))
 	 (let* ((pattern (feature-value f1))
 		(value-merges
@@ -210,7 +212,9 @@
     (format t "~%tv~% ~A,~% pu ~A,~% su ~A,~% s ~A~% bs ~A" tag-variable pattern-unit source-unit source bindings)
     ;; first we locate the tag in the pattern
     ;; we construct a new-unit which will later be added to the resulting structure
-    (setq new-unit (make-unit :name (unit-name source-unit)))
+    (setq new-unit (make-unit :name (or (lookup (unit-name pattern-unit)
+						   bindings)
+					   (unit-name pattern-unit))))
     ;; for each feature in the pattern unit containing the tag
     (dolist (feature (unit-features pattern-unit))
       ;; if the feature happens to be a tag and contains the variable we want to remove
@@ -380,13 +384,22 @@ HANDLE-J-UNITS. Returns a list of MERGE-RESULTs."
    source = ~A
    bindings = ~A
    added = ~A" J-UNIT pattern source bindings added)
-  (unless (or (not (variable-p (second (unit-name J-unit))))
-	      (and (lookup (second (unit-name J-unit)) bindings)
-		   (not (variable-p (lookup (second (unit-name J-unit)) bindings)))))
-    (let ((new-unit-name (make-const (second (unit-name J-unit)))))
-      (setq bindings (extend-bindings (second (unit-name J-unit))
-				      new-unit-name
-				      bindings))))
+  (cond ((not (variable-p (second (unit-name J-unit)))))
+        ((and (lookup (second (unit-name J-unit)) bindings)
+              (not (variable-p (lookup (second (unit-name J-unit)) bindings)))))
+        ((lookup (second (unit-name J-unit)) bindings)
+         (let ((new-unit-name (make-const (second (unit-name J-unit)))))
+             (setq bindings (extend-bindings (lookup (second (unit-name J-unit)) bindings)
+                                             new-unit-name
+                                             bindings))
+             (setq bindings (extend-bindings (second (unit-name J-unit))
+                                             new-unit-name
+                                             bindings))))
+        (t
+         (let ((new-unit-name (make-const (second (unit-name J-unit)))))
+             (setq bindings (extend-bindings (second (unit-name J-unit))
+                                             new-unit-name
+                                             bindings)))))
   (let ((new-unit (structure-unit source (or (lookup (second (unit-name J-unit)) bindings)
 					     (second (unit-name J-unit)))))
 	(tags nil))
@@ -481,6 +494,7 @@ HANDLE-J-UNITS. Returns a list of MERGE-RESULTs."
     #+dbg
     (format t "~%source=~A" source)
     ;; Next change the hierarchical structure.
+    #|
     (when (third (unit-name J-unit))
       (let ((parent-name (or (lookup (third (unit-name J-unit)) bindings) (third (unit-name J-unit)))))
 ;; 	(unless (find parent-name source :key #'unit-name)
@@ -507,6 +521,7 @@ HANDLE-J-UNITS. Returns a list of MERGE-RESULTs."
 			(unit-name new-unit)
 			source
                         unit-name)))
+    |#
     ;; Finally add all features to the new unit.
     #+dbg
     (format t "~%3 source=~A" source)

@@ -1,5 +1,5 @@
 
-;(asdf:operate 'asdf:load-op :spanish-grammar)
+;(ql:quickload  :spanish-grammar)
 (in-package :fcg)
 
 (defparameter *test-sentences* (babel-pathname :directory '("grammars" "Spanish")

@@ -43,7 +43,7 @@
   "Remove the element from the front of the queue and return it."
   (if (listp (elements q))
       (pop (elements q))
-    (heap-extract-min (elements q) (key q))))
+      (heap-extract-min (elements q) (key q))))
 
 (defun queue-length (q)
   (length (elements q)))
@@ -52,6 +52,8 @@
 
 (defun enqueue-at-front (q items)
   "Add a list of items to the front of the queue."
+  (when (empty-queue? q)
+    (setf (last-cons q) (last items)))
   (setf (elements q) (nconc items (elements q)))
   q)
 
@@ -60,11 +62,12 @@
   "Add a list of items to the end of the queue."
   ;; To make this more efficient, keep a pointer to the last cons in the queue
   (cond ((null items) nil)
-	((or (null (last-cons q)) (null (elements q)))
-	 (setf (last-cons q) (last-cons items)
+	((or (null (last-cons q))
+             (null (elements q)))
+	 (setf (last-cons q) (last items)
 	       (elements q) (nconc (elements q) items)))
 	(t (setf (cdr (last-cons q)) items
-		 (last-cons q) (last-cons items))))
+		 (last-cons q) (last items))))
   q)
 
 (defun enqueue-by-priority (q items key)

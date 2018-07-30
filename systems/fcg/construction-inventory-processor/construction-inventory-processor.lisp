@@ -641,7 +641,10 @@ solution."
    (unless (or solution
                (succeeded-nodes cip))
      (setf solution (get-last-cip-node cip))
-     (push 'goal-test-failed (statuses solution)))
+     ;; make-sure goal-tests are run!
+     (progn
+       (cip-run-goal-tests solution cip)
+       (push 'goal-test-failed (statuses solution))))
    (when notify (notify cip-finished solution cip))
    (return (values solution cip))))
 

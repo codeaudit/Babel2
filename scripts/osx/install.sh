@@ -49,7 +49,6 @@ function home_settings {
 		mv "$NEWFILE" "$OLDFILE"
 		echo "Config placed."
 	fi
-	rm "$NEWFILE"
 	cd "$OLDPWD"
 }
 
@@ -65,26 +64,6 @@ function brew_install {
 		echo "$2 has not been found."
 		echo "Installing..."
 		brew install $2 $3
-		if [ $? -eq 0 ]; then
-			echo "Installed."
-		else
-			echo "Something wrong has happened, aborting. Contact the Babel team for help."
-			exit 1
-		fi
-	fi
-}
-
-function brew_cask_install {
-	# $1: Command to be checked
-	# $2: Name of package
-	# $3: Options if any
-	command -v $1
-	if [ $? -eq 0 ]; then
-		echo "$2 detected, skipping."
-	else
-		echo "$2 has not been found."
-		echo "Installing..."
-		brew cask install $2 $3
 		if [ $? -eq 0 ]; then
 			echo "Installed."
 		else
@@ -150,16 +129,25 @@ echo
 
 echo "== 3: CCL Lisp compiler =="
 ## brew_install "ccl" "clozure-cl"
-curl -OL "https://github.com/Clozure/ccl/releases/download/v1.11.5/ccl-1.11.5-darwinx86.tar.gz"
-tar -xvzf ccl-1.11.5-darwinx86.tar.gz
-mv ./ccl/scripts/ccl /usr/local/bin/
-mv ./ccl/scripts/ccl64 /usr/local/bin/
-mv ./ccl/ /usr/local/src/
+command -v ccl
+if [ $? -eq 0 ]; then
+	echo "CCL detected, skipping."
+else
+	echo "Downloading and installing CCL"
+	curl -OL "https://github.com/Clozure/ccl/releases/download/v1.11.5/ccl-1.11.5-darwinx86.tar.gz"
+	tar -xvzf ccl-1.11.5-darwinx86.tar.gz
+	mv ./ccl/scripts/ccl /usr/local/bin/
+	mv ./ccl/scripts/ccl64 /usr/local/bin/
+	if [ ! -d "/usr/local/src/ccl" ]; then
+		sudo mkdir -p /usr/local/src/ccl
+	fi
+	sudo mv -v ./ccl/* /usr/local/src/ccl/
+fi
 echo
 
 
 echo "== 4: Gnuplot =="
-if [ -d "$Aquaterm.app" ]; then
+if [ -d "/Applications/Aquaterm.app" ]; then
 	echo "AquaTerm detected, skipping"
 else
 	brew cask install aquaterm
@@ -180,13 +168,6 @@ echo "You can also use the professional editor Lispworks for development."
 echo "However, the free version of Lispworks won't work with Babel due to memory limits."
 echo "We can't install Lispworks for you, but we can set up the config for Babel."
 echo
-echo "Note that, when choosing Sublime Text, this will not be installed through this script."
-echo "You can go to Sublime Text's website and download the latest version there."
-echo "Also note that you will need to install additional Sublime Text packages to enjoy the full Lisp experience"
-echo "First, install Package Control. Use this to install the following packages:"
-echo "SublimeREPL, rainbowth, Load File to REPL, BracketHighlighter and lispindent"
-echo "PLEASE BE NOTED that development in Sublime Text is not fully supported by the Babel2 team"
-echo
 read -n1 -rsp "Press S to skip, L for Lispworks, Ctrl+C to abort, or any other key for Emacs: " KEY
 echo
 if [ "$KEY" = 'S' -o "$KEY" = 's' ]; then
@@ -200,11 +181,11 @@ elif [ "$KEY" = 'L' -o "$KEY" = 'l' ]; then
 else
 	echo
 	echo "== 6: Emacs editor =="
-	brew tap railwaycat/emacsmacport
-	if [ -d "$Emacs.app" ]; then
+	if [ -d "/Applications/Emacs.app" ]; then
 		echo "Emacs detected, skipping"
 	else
-		brew install emacs-mac
+		brew tap railwaycat/emacsmacport
+		brew_install emacs emacs-mac
 		ln -s /usr/local/opt/emacs-mac/Emacs.app /Applications
 	fi
 	echo
@@ -242,22 +223,10 @@ if [ $? -eq 0 ]; then
 	echo "Babel2 detected, skipping."
 else
 	echo "Babel2 has not been found."
-	echo "You can download Babel2 as an archive or clone it from Git"
-	echo "To get the latest version, we recommend cloning from Git"
-	read -n1 -rsp "Press Z for the archive or C for the Git clone: " KEY
-	if [ "$KEY" = 'Z' -o "$KEY" = 'z' ]; then
-		echo "Downloading the archive"
-		(curl -OL https://github.com/EvolutionaryLinguisticsAssociation/Babel2/archive/v2.0.6.tar.gz &&
-			mkdir ~/Babel2 &&
-			tar -xvzf v2.0.6.tar.gz -C ~/Babel2 --strip-components 1
-			rm v2.0.6.tar.gz)
-		echo "Installed."
-	elif [ "$KEY" = 'C' -o "$KEY" = 'c' ]; then
-		echo "Cloning the git repository"
-		brew_install "git" "git"
-		(git clone https://github.com/EvolutionaryLinguisticsAssociation/Babel2.git ~/Babel2)
-		echo "Installed"
-	fi
+	echo "Cloning the latest version from Git..."
+	brew_install "git" "git"
+	(git clone https://github.com/EvolutionaryLinguisticsAssociation/Babel2.git ~/Babel2)
+	echo "Installed"
 fi
 echo
 
@@ -274,13 +243,15 @@ else
 	echo "Quicklisp has not been found"
 	echo "Installing..."
 	curl -O "https://beta.quicklisp.org/quicklisp.lisp"
-	echo "If CCL does not exit automaticlly, enter (ccl:quit)"
-	ccl -l quicklisp.lisp -e "(quicklisp-quickstart:install)(ql:quickload :cl-ppcre)(ql:quickload :cl-who)(quit)" -b
+	echo "The script will now open a CCL session to install Quicklisp"
+	echo "If CCL does not exit automatically, enter (quit)"
+	read -n1 -rsp "Press any key to continue or Ctrl+C to abort: "
+	ccl -l quicklisp.lisp -e '(quicklisp-quickstart:install)' -e '(ql:quickload :cl-ppcre)' -e '(ql:quickload :cl-who)' -e '(quit)' -b
 	rm quicklisp.lisp
 	echo "Installed."
 fi
 
-echo "== 10: Testing babel2 =="
+echo "== 10: Testing Babel2 =="
 # We omit the browser test because it entails keeping ccl running and it complicates matters
 # it usually never fails anyway (compared to possible graphviz/gnuplot issues)
 echo "The test consists in opening a PDF file with a diagram and displaying a window with a sinus function."
