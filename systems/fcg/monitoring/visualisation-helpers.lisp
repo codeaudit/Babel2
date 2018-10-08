@@ -24,7 +24,7 @@
 (defun get-meaning-network (utterance &optional (cxn-inventory *fcg-constructions*))
   "Comprehends utterance using cxn-inventory, writes the meaning network to a pdf file, and opens it."
   (let ((meaning (comprehend utterance :cxn-inventory cxn-inventory :silent t)))
-    (s-dot->image (wi::predicate-network->s-dot meaning) :format "pdf" :open t)))
+    (s-dot->image (wi::predicate-network->s-dot (shuffle meaning)) :format "pdf" :open t)))
 
 (defun add-cxn-to-wi (cxn &optional (cxn-inventory *fcg-constructions*))
   "Adds cxn to the web interface."

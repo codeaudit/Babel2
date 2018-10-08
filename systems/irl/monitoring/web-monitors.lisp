@@ -33,7 +33,8 @@
 (define-event-handler ((trace-irl-in-web-browser 
                         trace-irl-in-web-browser-verbose)
                        evaluate-irl-program-finished)
-  (let ((tree-id (make-id 'tree)))
+  (let ((tree-id (make-id 'tree))
+        (ordered-solutions (collect-solutions evaluation-tree)))
     (add-element 
      `((table :class "two-col")
        ((tbody)
@@ -42,7 +43,7 @@
          ((td) 
           ((div :style "margin-top:-7px")
            ,(make-html evaluation-tree :expand/collapse-all-id tree-id)))))))
-    (draw-solutions solutions)))
+    (draw-solutions ordered-solutions)))
 
 ;; ============================================================================
 ;; match-chunk

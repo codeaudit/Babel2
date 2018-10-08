@@ -56,7 +56,7 @@
 
 (defmethod find-entity-by-id ((blackboard blackboard) (id symbol))
   (loop for field in (data-fields blackboard)
-     thereis (find-entity-by-id (cdr field) id)))
+        thereis (find-entity-by-id (cdr field) id)))
 
 (defmethod find-entity-by-id ((cons cons) (id symbol))
   (if (and (typep (car cons) 'entity) (eq (id (car cons)) id))

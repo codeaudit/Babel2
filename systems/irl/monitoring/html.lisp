@@ -43,6 +43,38 @@
              '((div)) p))))
       (add-element `((p) ((b) "no solutions")))))
 
+(defun collect-solutions (evaluation-tree)
+  (let (solution-paths stack solutions)
+    ;; construct the solution pathways
+    (traverse evaluation-tree
+              #'(lambda (node)
+                  (when stack
+                    (loop while (not (eql (id (first stack)) (id (parent node))))
+                          do (pop stack)))
+                  (push node stack)
+                  (when (and (not (children node))
+                             (eql (status node) 'solution))
+                    (push (mapcar #'id stack) solution-paths))))
+    ;; for each solution path
+    ;;   go through the path and collect the bindings
+    ;;   only collect those that have a value that differs from their parent node
+    ;;   (meaning this binding was introduced at this node in the path)
+    ;;   if the node has no parent (i.e. it is the root), only collect bindings
+    ;;   that have a value.
+    (loop for solution-path in solution-paths
+          for ordered-solution = (loop for node-id in solution-path
+                                       for node = (find node-id (nodes evaluation-tree) :key #'id)
+                                       for parent-node = (parent node)
+                                       for new-bindings = (if parent-node
+                                                            (loop for binding in (bindings node)
+                                                                  when (new-binding-p binding parent-node)
+                                                                  collect binding)
+                                                            (find-all-if #'(lambda (binding) (value binding)) (bindings node)))
+                                       append new-bindings)
+          do (push ordered-solution solutions))
+    (sort solutions #'< :key #'length)))
+                    
+
 ;; #########################################################
 ;; make-tr-for-irl-program... (makes table rows)
 ;; ---------------------------------------------------------
@@ -251,12 +283,20 @@ div.ipen > div > div.ipen-details:last-child { margin-bottom:-15px; }
          (symbol-name (status node))))
     (t "UNKNOWN STATUS")
     ))
+
+(defun new-binding-p (child-binding parent-node)
+  "Check if the value of the binding has changed between parent and child"
+  (let ((parent-binding (find (var child-binding) (bindings parent-node) :key #'var)))
+    (if (typep (value child-binding) 'entity)
+      (not (equal-entity (value child-binding) (value parent-binding)))
+      (not (eql (value child-binding) (value parent-binding))))))
   
 (defmethod make-html ((node irl-program-evaluation-node) 
                       &key (expand/collapse-all-id (make-id 'ipen))
                       (expand-initially nil))
   (let* ((element-id (make-id 'ipen))
-         (bindings-id (make-id 'bindings)) 
+         (new-bindings-id (make-id 'new-bindings))
+         (used-bindings-id (make-id 'used-bindings))
          (status (status node))
          (node-color
           (or (assqv status *irl-program-evaluation-node-status-colors*)
@@ -290,7 +330,19 @@ div.ipen > div > div.ipen-details:last-child { margin-bottom:-15px; }
                      "")))
           (let ((status `((span :style ,(mkstr "color:" node-color))
                           ,(format nil "status: ~(~a~)" (status node))))
-                (id (make-id 'ipen)))
+                (id (make-id 'ipen))
+                (new-bindings (if (parent node)
+                                (loop for binding in (bindings node)
+                                      when (new-binding-p binding (parent node))
+                                      collect binding)
+                                (loop for binding in (bindings node)
+                                      when (value binding)
+                                      collect binding)))
+                (used-binding
+                 (let ((evaluated-primitive (first (primitives-evaluated node))))
+                   (when (and (> (length evaluated-primitive) 3)
+                              (variable-p (last-elt evaluated-primitive)))
+                     (find (last-elt evaluated-primitive) (bindings node) :key #'var)))))
             `((div :class "ipen" :style ,(mkstr "border:1px dotted " node-color))
               (,@title-div
                ((a ,@(make-expand/collapse-link-parameters element-id nil))
@@ -309,16 +361,27 @@ div.ipen > div > div.ipen-details:last-child { margin-bottom:-15px; }
                                      "remaining primitives")
                    ,(show-primitives (primitives-evaluated-w/o-result node)
                                      "primitives evaluated w/o result")))
+               ;; show new bindings
                ((div :class "ipen-details")
-                ,(make-expand/collapse-all-link bindings-id "bindings:&#160;&#160;")
-                ,@(loop for b in (bindings node)
-                     collect (make-html 
-                              b 
-                              :expand/collapse-all-id bindings-id))))))))
+                ,(make-expand/collapse-all-link new-bindings-id "new bindings:&#160;&#160;")
+                ,@(loop for b in new-bindings
+                        collect (make-html b :expand/collapse-all-id new-bindings-id)))
+               ;; show used initial binding
+               ((div :class "ipen-details")
+                ,(make-expand/collapse-all-link used-bindings-id "initial binding used:&#160;&#160;")
+                ,(make-html used-binding :expand/collapse-all-id used-bindings-id))
+               )))))
       :expand-initially expand-initially)
      (loop for child in (children node)
         collect (make-html child :expand/collapse-all-id expand/collapse-all-id))
      :color "#aaa")))
+
+(defmethod make-html ((tree irl-program-evaluator)
+                      &key (expand/collapse-all-id (make-id 'ipen))
+                      (expand-initially nil))
+  (make-html (top tree)
+             :expand/collapse-all-id expand/collapse-all-id
+             :expand-initially expand-initially))
 
 ;; #########################################################
 ;; chunk - make-html

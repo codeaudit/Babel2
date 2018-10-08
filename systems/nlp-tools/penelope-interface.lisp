@@ -144,9 +144,9 @@ of strings, each list corresponding to a named entity."
 
 ;;(run-penelope-dependency-parser "April is the fourth month of the year")
 
-(defun get-penelope-dependency-analysis (utterance)
+(defun get-penelope-dependency-analysis (utterance &key (model "en"))
   "Returns a dependency tree analysis."
-  (rest (assoc :tree (first (run-penelope-dependency-parser utterance)))))
+  (rest (assoc :tree (first (run-penelope-dependency-parser utterance :model model)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;Tokenization

@@ -340,10 +340,10 @@ branching node."
     (if (rest chains)
       (let* ((preceding-chain (find (first order) (rest chains) :test #'member))
              (pos-of-prec-chain-in-rest-chains (position preceding-chain (rest chains) :test #'equal))
-             (preceding-chains (subseq (rest chains) 0 (+ 1 pos-of-prec-chain-in-rest-chains)))
-             (following-chains (subseq (rest chains) (+ 1 pos-of-prec-chain-in-rest-chains))))
+             (preceding-chains (when pos-of-prec-chain-in-rest-chains (subseq (rest chains) 0 (+ 1 pos-of-prec-chain-in-rest-chains))))
+             (following-chains (when pos-of-prec-chain-in-rest-chains (subseq (rest chains) (+ 1 pos-of-prec-chain-in-rest-chains)))))
         (if preceding-chain
-          (append  preceding-chains (first chains)                   
+          (append  preceding-chains (list (first chains))                   
                    (when following-chains
                      (remove preceding-chain following-chains :test #'equal)))
           (cons (list (first order)) chains)))

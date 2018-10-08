@@ -47,7 +47,7 @@
   "Does not crash for example in (test . test)."
   (cond
    ((null list) nil)
-   ((symbolp list) (copy-object list))
+   ((not (consp list)) (copy-object list))
    (t
     (cons (copy-object (first list))
           (my-copy-object-list (rest list))))))

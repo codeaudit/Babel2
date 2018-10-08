@@ -3,7 +3,9 @@
 (defsystem :corpus-processing
   :depends-on (:utils :cl-fad :cl-json :trivial-timeout)
   :components 
-  (#+:lw(:file "corpus-processing")
-   (:file "json-corpus-processing")))
+  ((:file "corpus-processing")
+   (:file "json-corpus-processing")
+   (:file "json-stream-processing")
+   ))
 	
 

@@ -87,17 +87,6 @@
               `(,unit-name ,counter ,(incf counter)) word-boundaries)
         (push ;; Here we make the string-form-constraint
               `(string ,unit-name ,string) form-constraints)))
-
- ;; 1b. Collect NOUN-CHUNK-form-constraints
-    #+odycceus
-    (dolist (chunk-as-list (get-penelope-noun-chunks utterance))
-      (let* ((unit-name (make-const "chunk" nil))
-             (chunk (utils::list-of-strings->string chunk-as-list))
-             (init-chunk-index (position (odycceus::first-word chunk) chunk-as-list :test #'string=)))
-        (push `(,unit-name ,init-chunk-index ,(+ init-chunk-index
-                                                 (length chunk-as-list))) word-boundaries)
-        (push `(noun-chunk ,unit-name ,chunk) form-constraints)))
-
     
     ;; 2. Now we add all the relevant word ordering constraints to the form-constraints.
     (setf word-boundaries (reverse word-boundaries))

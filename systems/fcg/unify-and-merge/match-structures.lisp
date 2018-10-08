@@ -310,7 +310,7 @@
 
 (define-event warn-unable-to-determine-domain (structure t))
 
-(defun make-child (unit-name parent-name source &optional unit-name-var)
+#|(defun make-child (unit-name parent-name source &optional unit-name-var (cxn-inventory *fcg-constructions*))
   (unless (or (eq unit-name parent-name)
 	      (find (structure-unit source parent-name)
 		    (subunits (structure-unit source unit-name) source)))	      
@@ -319,13 +319,13 @@
     ;; first delete unit from its current parrent:
     (loop for unit in source 
        unless (eq (unit-name unit) unit-name)
-       do (let ((subunits-feature (get-subunits-feature unit)))
+       do (let ((subunits-feature (get-subunits-feature unit (get-configuration (visualization-configuration cxn-inventory) :selected-hierarchy))))
 	    (when (find unit-name (feature-value subunits-feature))
 	      (setf (feature-value subunits-feature)
 		    (delete unit-name (feature-value subunits-feature))))))
     ;; now add it to the new parent:
     (let* ((parent-unit (structure-unit source parent-name))
-	   (subunits-feature (get-subunits-feature parent-unit)))
+	   (subunits-feature (get-subunits-feature parent-unit (get-configuration (visualization-configuration cxn-inventory) :selected-hierarchy))))
       ;; (format t "~%~%unit-name=~A, parent-name=~A~%source=~A~%parent-unit=~A~%subunits-feature=~A~%~%"
       ;; 	      unit-name parent-name source parent-unit subunits-feature)
       (unless parent-unit
@@ -349,7 +349,7 @@
                (push (make-feature 'subunits (list unit-name))
                      (unit-features parent-unit)))))
     ;; (format t "~%finished")
-    source))
+    source)) |#
 
 (define-event warn-unable-to-merge-tag-value (j-unit list) (tag-variable symbol) (tag-value list) (unit list))
 (define-event warn-tag-variable-unbound (j-unit list) (tag-variable symbol))
@@ -374,6 +374,16 @@
           special-op))))
   
 
+(defun deep-lookup (unit-var bindings)
+  ;; Remi: checks the chain of variables to see whether no constant exists yet
+  ;; This solves a problem whereby a binding would not be found.
+  (let* ((binding (assoc unit-var bindings))
+         (value (rest binding)))
+    (when binding
+      (if (variable-p value)
+        (deep-lookup value (remove binding bindings :test #'equal)) ;; rules out circularity
+        value))))
+
 (defun handle-J-unit (J-unit pattern source bindings tag-variables &optional added &key cxn-inventory)
   "Helper function for merging of structures called from
 HANDLE-J-UNITS. Returns a list of MERGE-RESULTs."
@@ -385,8 +395,7 @@ HANDLE-J-UNITS. Returns a list of MERGE-RESULTs."
    bindings = ~A
    added = ~A" J-UNIT pattern source bindings added)
   (cond ((not (variable-p (second (unit-name J-unit)))))
-        ((and (lookup (second (unit-name J-unit)) bindings)
-              (not (variable-p (lookup (second (unit-name J-unit)) bindings)))))
+        ((deep-lookup (second (unit-name J-unit)) bindings))
         ((lookup (second (unit-name J-unit)) bindings)
          (let ((new-unit-name (make-const (second (unit-name J-unit)))))
              (setq bindings (extend-bindings (lookup (second (unit-name J-unit)) bindings)
@@ -400,7 +409,7 @@ HANDLE-J-UNITS. Returns a list of MERGE-RESULTs."
              (setq bindings (extend-bindings (second (unit-name J-unit))
                                              new-unit-name
                                              bindings)))))
-  (let ((new-unit (structure-unit source (or (lookup (second (unit-name J-unit)) bindings)
+  (let ((new-unit (structure-unit source (or (deep-lookup (second (unit-name J-unit)) bindings)
 					     (second (unit-name J-unit)))))
 	(tags nil))
     (unless new-unit
@@ -554,7 +563,7 @@ HANDLE-J-UNITS. Returns a list of MERGE-RESULTs."
       mrs)))
 
 ;; new functions for updating references
-
+#|
 (defun update-references-upwards (old-values new-value new-source starting-unit)
   (let ((updated-units nil))
     (loop for current-unit = (get-parent-unit starting-unit new-source)
@@ -613,9 +622,10 @@ HANDLE-J-UNITS. Returns a list of MERGE-RESULTs."
 	  append (loop for unit-name-var in unit-name-vars
 		    collect (cdr (get-binding unit-name-var bindings))))
        do (unit-update-references new-source unit-name))
-  new-source)
+  new-source) 
 
 (defvar *update-references* nil)
+|#
 
 (defun tag-get-variables (tag)
   (let ((r nil))

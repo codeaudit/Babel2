@@ -14,7 +14,8 @@
 
 (in-package :utils)
 
-(export '(run-prog pipe-through pipe-input pipe-output close-pipe with-open-pipe exec-and-print exec-and-return open-file-in-OS copy-file))
+(export '(run-prog pipe-through pipe-input pipe-output close-pipe with-open-pipe
+          exec-and-print exec-and-return open-file-in-OS copy-file program-installed-p number-of-lines))
 
 
 ;;; helper function on gcl
@@ -179,6 +180,10 @@ Useful for re-using the &REST arg after removing some options."
 	   while line))
     (error () nil)))
 
+;;(exec-and-print "dot" "-V")
+;;(exec-and-print "gnuplot" "--version")
+;;(exec-and-print "gnuplot" "-e" "\"show term\"")
+
 (defun exec-and-return (program &rest args)
   "runs a shell command and returns what it prints to standard output and standard error"
   (let (outputlines)
@@ -203,9 +208,22 @@ Useful for re-using the &REST arg after removing some options."
 (defun copy-file (source dest)
   (exec-and-return "cp" (mkstr source) (mkstr dest)))
 
-;;(exec-and-print "dot" "-V")
-;;(exec-and-print "gnuplot" "--version")
-;;(exec-and-print "gnuplot" "-e" "\"show term\"")
+(defun program-installed-p (program)
+  "uses 'which' to check if a given program is installed and in the PATH"
+  (exec-and-return "which" (mkstr program)))
+
+(defun number-of-lines (file)
+  "Returns the number of lines in a file"
+  (let ((number-of-lines
+         (parse-integer
+          (first
+           (split-sequence:split-sequence
+            #\Space
+            (first (exec-and-return "wc" "-l" (namestring file)))
+            :remove-empty-subseqs t)))))
+    number-of-lines))
+
+
 
 
 

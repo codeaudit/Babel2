@@ -5,8 +5,7 @@
 ;;chosen, and sometimes even with the same referent.
 
 (def-fcg-constructions referent-grammar
-  :feature-types ((args sequence)
-                  (form set-of-predicates)
+  :feature-types ((form set-of-predicates)
                   (meaning set-of-predicates)
                   (subunits set)
                   (footprints set))
@@ -18,35 +17,66 @@
 (def-fcg-cxn bake-lex
              ((?bake-unit
                (referent ?ref)
-               (args (?ev ?a ?b))
-               (sem-valence (actor ?a)
-                            (undergoer ?b)))
+               (args (frame ?frame)
+                     (event ?event))
+               (sem-valence (actor ?baker)
+                            (undergoer ?baked)))
                <-
                (?bake-unit
-                (HASH meaning ((event-frame bake ?ev)
-                               (slot baker ?ev ?a)
-                               (slot baked ?ev ?b)))
+                (HASH meaning ((frame bake ?frame ?event)
+                               (slot baker ?frame ?baker)
+                               (slot baked ?frame ?baked)))
                 --
                 (syn-cat (lex-id bake)))))
 
+(def-fcg-cxn bart-lex
+             ((?bart-unit
+              ;; (referent ?bart)
+              (args (xyz ?bart))
+              (syn-cat (lex-class proper-noun)
+                        (agreement 3sg)
+                        (phrase-type np))
+               (sem-cat (sem-type person)))
+              <-
+              (?bart-unit
+               (HASH meaning ((person bart ?bart)))
+               --
+               (HASH form ((string ?bart-unit "bart"))))))
+
 (def-fcg-cxn bakes-morph
              ((?bakes-unit
-               (footprints (morph))
-               (referent ?ev)
+               (referent ?event)
                (syn-cat (lex-class verb)
                         (agreement 3sg)))
               <-
               (?bakes-unit
-               (footprints (not morph))
-               (args (?ev ?baker ?baked))
+               (args (event ?event))
                (syn-cat (lex-id bake))
-               (HASH referent ?ev)
+               (HASH meaning ((referent ?event)))
                --
-               (HASH form ((string ?bakes-unit "bakes")))))
-             :disable-automatic-footprints t)
+               (HASH form ((string ?bakes-unit "bakes"))))))
 
-muskat
-(def-fcg-cxn baker-morph
+(def-fcg-cxn intransitive-cxn
+             ((?event-unit
+               (subunits (?subject-unit))
+               (syn-valence (subject ?subject-unit)))
+              <-
+              (?subject-unit
+               (args (xyz ?agent))
+               (syn-cat (phrase-type np))
+               --
+               (syn-cat (phrase-type np)
+                        (agreement ?agr)))
+              
+              (?event-unit
+               (args (event ?event))
+               (sem-valence (actor ?agent))
+               --
+               (HASH form ((meets ?subject-unit ?event-unit))
+               (syn-cat (lex-class verb)
+                        (agreement ?agr))))))
+
+#|(def-fcg-cxn baker-morph
              ((?baker-unit
                (footprints (morph))
                (referent ?baker)
@@ -56,7 +86,7 @@ muskat
                (footprints (not morph))
                (args (?ev ?baker ?baked))
                (syn-cat (lex-id bake))
-               (HASH referent ?baker)
+             ;;  (HASH referent ?baker)
                --
                (HASH form ((string ?baker-unit "baker")))))
              :disable-automatic-footprints t)
@@ -163,7 +193,7 @@ muskat
                (syn-cat (lex-class verb)
                         (agreement ?agr)))))
 
-;;the cake was baken by him, the baking of the cake by him
+;;the cake was baked by him, the baking of the cake by him
 (def-fcg-cxn passive-agent-cxn
              ((?event-unit
                (subunits (?agent-unit)))
@@ -210,10 +240,54 @@ muskat
                            (meets ?nominalized-unit ?of-unit)
                            (meets ?of-unit ?object-unit)))
                (syn-cat (phrase-type np)))))
-
+|#
 )
 
 (activate-monitor trace-fcg)
+
+;;bart bakes
+(formulate-and-comprehend '((frame bake ?bake-frame ?event)
+             (slot baker ?bake-frame ?bart)
+             (slot baked ?bake-frame unknown)
+             (person bart ?bart)
+             (referent ?event)))
+
+;;bart the baker
+(formulate '((frame bake ?bake-frame ?event)
+             (slot baker ?bake-frame ?bart)
+             (slot baked ?bake-frame unknown)
+             (person ?bart)
+             (referent ?bart)))
+
+;; the baker
+(formulate '((frame bake ?bake-frame ?event)
+             (slot baker ?bake-frame ?baker)
+             (slot baked ?bake-frame unknown)
+             (referent ?baker)))
+
+;; the baked
+(formulate '((frame bake ?bake-frame ?event)
+             (slot baker ?bake-frame unknown)
+             (slot baked ?bake-frame ?baked)
+             (referent ?baked)))
+
+;; the cake
+(formulate '((frame bake ?bake-frame ?event)
+             (slot baker ?bake-frame unknown)
+             (slot baked ?bake-frame ?cake)
+             (edible-object ?cake)
+             (referent ?cake)))
+
+;;the baking
+(formulate '((frame bake ?bake-frame ?event)
+             (slot baker ?bake-frame ?bart)
+             (slot baked ?bake-frame unknown)
+             (referent ?bake-frame)))
+
+
+
+
+
 
 (comprehend "bakes")
 
@@ -237,14 +311,6 @@ muskat
              (slot baked ev cake)
              (referent-status ev definite))
               :referent 'ev)
-
-;;the baking
-(formulate '((event-frame bake ev)
-             (slot baker ev ?baker)
-             (slot baked ev ?baked)
-             (referent-status ev definite))
-              :referent 'ev)
-
 
 
 (comprehend "he bakes a cake")

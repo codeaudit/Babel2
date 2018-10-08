@@ -9,3 +9,9 @@ from the tutorial directory and returns the fcg construction set."
                         :name "demo-grammar"
                         :type "lisp"))
   (make-demo-grammar-cxns))
+
+
+(defun show-grammar (grammar)
+  "Show the grammar in the web interface"
+  (add-element (make-html grammar)))
+  

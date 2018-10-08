@@ -166,13 +166,19 @@
           evaluate-irl-program evaluate-irl-program-started
           evaluate-irl-program-finished))
 
-(defclass irl-program-evaluation-node ()
+(defclass irl-program-evaluator (tree)
+  ((irl-program
+    :accessor irl-program :initarg :irl-program :initform nil
+    :documentation "The irl program being evaluated")))
+
+(defclass irl-program-evaluation-node (tree-node)
   ((status 
     :accessor status :initarg :status :initform 'initial
     :documentation "Status of this node (initial primitives-remaining
                     inconsistent no-primitives-remaining solution
                     bad-node)")
-   (children :accessor children :initarg :children :initform nil)
+   ;(parent :accessor parent :initarg :parent :initform nil)
+   ;(children :accessor children :initarg :children :initform nil)
    (bindings :accessor bindings :initarg :bindings)
    (primitives-evaluated 
     :accessor primitives-evaluated
@@ -185,8 +191,8 @@
     :initarg :primitives-evaluated-w/o-result :initform nil)))
 
 
-(defun check-node-no-duplicate-solutions (node nodes solutions &rest rest)
-  (declare (ignore rest nodes))
+(defun check-node-no-duplicate-solutions (node evaluator solutions &rest rest)
+  (declare (ignore rest evaluator))
   (if (primitives-remaining node)
     node
     (loop for solution in solutions
@@ -203,7 +209,7 @@
 (define-event evaluate-irl-program-started (irl-program list))
 
 (define-event evaluate-irl-program-finished
-  (solutions list) (evaluation-tree irl-program-evaluation-node))
+  (solutions list) (evaluation-tree irl-program-evaluator))
 
 (defun evaluate-irl-program
        (irl-program
@@ -252,7 +258,8 @@
     (when check-irl-program-fn
       (funcall check-irl-program-fn irl-program ontology))
     (let* ((queue nil)
-           (nodes nil)
+           ;(nodes nil)
+           (evaluator (make-instance 'irl-program-evaluator :irl-program irl-program))
            (solutions nil)
            ;; initializing bindings
            (variables 
@@ -281,9 +288,11 @@
       (notify evaluate-irl-program-started irl-program)
       
       ;; we keep the initial node (for visualization)
-      (push initial-node nodes)
+      ;(push initial-node nodes)
+      (add-node evaluator initial-node)
+      
       (cond
-       ((not (funcall check-node-fn initial-node nodes solutions))
+       ((not (funcall check-node-fn initial-node evaluator solutions))
         (setf (status initial-node) 'bad-node))
        ((primitives-remaining initial-node) (push initial-node queue))
        ((null (position nil (bindings initial-node) :key #'value))
@@ -317,8 +326,10 @@
                                      (primitives-remaining current-node))
                              (primitives-evaluated-w/o-result current-node))
                             :primitives-evaluated-w/o-result nil)))
-             (push new-node nodes)
-             (push new-node (children current-node))))
+             (add-node evaluator new-node :parent current-node)))
+             ;(push new-node nodes)
+             ;(setf (parent new-node) current-node)
+             ;(push new-node (children current-node))))
 
           ((null result) ;; if nothing happens, requeue the node
            (let ((remaining-primitives (remove current-primitive
@@ -336,6 +347,7 @@
                  (push current-primitive 
                        (primitives-evaluated-w/o-result current-node))
                  (setf (primitives-remaining current-node) nil)))))
+          
           ((and (listp result) result) ;; we have results
            (let ((remaining-primitives 
                   (append
@@ -353,9 +365,11 @@
                                    :primitives-remaining remaining-primitives
                                    :primitives-evaluated-w/o-result nil)
                    do
-                   (push new-node (children current-node))
+                   (add-node evaluator new-node :parent current-node)
+                   ;(push new-node (children current-node))
+                   ;(setf (parent new-node) current-node)
                    (cond
-                    ((null (funcall check-node-fn new-node nodes solutions))
+                    ((null (funcall check-node-fn new-node evaluator solutions))
                      (setf (status new-node) 'bad-node))
                     (remaining-primitives   
                      (setf (status new-node) 'primitives-remaining)
@@ -363,7 +377,7 @@
                     ((null (position nil res :key #'value))
                      (setf (status new-node) 'solution)
                      (push res solutions)))
-                   (push new-node nodes) ;; add node to nodes
+                   ;(push new-node nodes) ;; add node to nodes
                    ))))
          while queue)) ;; queue while
 
@@ -372,10 +386,12 @@
                             if solution
                             collect solution))
     
-      (notify evaluate-irl-program-finished solutions (car (last nodes)))
+      ;(notify evaluate-irl-program-finished solutions (car (last nodes)))
+      (notify evaluate-irl-program-finished solutions evaluator)
      
       ;; return solutions
-      (values solutions (car (last nodes))))))
+      ;(values solutions (car (last nodes)))
+      (values solutions evaluator))))
 
 ;; #############################################
 ;; IRL program connected?

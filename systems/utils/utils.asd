@@ -14,8 +14,7 @@
    (:file "math" :depends-on ("package"))
    (:file "lists-and-sets" :depends-on ("math" "package"))
    (:file "blackboard" :depends-on ("lists-and-sets" "copy-object" "package"))
-   (:file "relation" :depends-on ("package" "copy-object" "lists-and-sets"
-                                            "blackboard"))
+   (:file "relation" :depends-on ("package" "copy-object" "lists-and-sets" "blackboard"))
    (:file "configuration" :depends-on ("package"))
    (:file "symbols-and-strings" :depends-on ("package"))
    (:file "make-new-word" :depends-on ("package"))
@@ -31,6 +30,7 @@
    (:file "clos" :depends-on ("package"))
    (:file "event-dispatcher")
    (:file "ssh-scp")
+   (:file "streams")
    (:module tests
     :depends-on ("lists-and-sets" "configuration" "tree" "relation")
     :components 

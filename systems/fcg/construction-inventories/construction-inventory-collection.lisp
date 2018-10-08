@@ -121,8 +121,6 @@ find-construction-inventory))
 	 do (delete-cxn construction construction-inventory :key key :test test)))
   construction-inventory-collection)
 
-
-
 (defmethod add-cxn :around ((construction construction)
                             (construction-inventory construction-inventory-collection)
                             &key (replace-when-equivalent t) (label nil)

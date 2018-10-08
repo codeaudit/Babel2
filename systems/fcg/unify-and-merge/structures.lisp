@@ -66,7 +66,7 @@
 ;; Units
 ;; ############################################################################
 
-(export '(unit-name unit-body unit-features))
+(export '(unit-name unit-body unit-features make-unit))
 
 (defun make-unit (&key (name (make-id "UNIT")) features)
   `(,name ,@features))
@@ -101,6 +101,8 @@
 	(loop for feature in (unit-features unit) 
 	   until found do
 	     (cond ((eq (feature-name feature) name)
+		    (setq found feature))
+                   ((string= (feature-name feature) name) ;;Paul check this!
 		    (setq found feature))
 		   ((and (find (feature-name feature) '(tag tag-all))
 			 (eq (feature-name (third feature)) name))
@@ -161,18 +163,13 @@
 
 (export '(get-subunits-feature add-subunit subunits get-parent-unit))
 
-(defun get-subunits-feature (unit)
-  ;;(warn "Being designed for OLD OLD FCG (at least before 2015), it still checks subunits, sem-subunits and syn-subunits instead of checking the hierarchy-features of your grammar. Use with care and please adapt!")
-  (let ((res (or (unit-feature unit 'subunits)
-		 (unit-feature unit 'sem-subunits)
-		 (unit-feature unit 'syn-subunits))))
-    (when (and res (not (listp (feature-value res))))
-      (error "FCG error.  Cannot parse unit~%~%   ~A~%~%REASON: subunits feature must be a list.~%" unit))
-    res))
-
-(defun subunits (unit structure)
+(defun get-subunits-feature (unit subunit-feature-name)
+  "Returns the subunits feature value pair for the given unit."
+  (unit-feature unit subunit-feature-name))
+  
+(defun subunits (unit structure &optional (cxn-inventory *fcg-constructions*))
   (let ((result '())
-	(subunits-feature (get-subunits-feature unit)))
+	(subunits-feature (get-subunits-feature unit (get-configuration (visualization-configuration cxn-inventory) :selected-hierarchy))))
     (when (and subunits-feature (not (listp (feature-value subunits-feature))))
       (error "FCG error.  Cannot parse unit~%~%   ~A~%~%REASON: subunits feature must be a list.~%" unit))
     (dolist (unit-name (remove-special-operators (feature-value subunits-feature) +no-bindings+))
@@ -186,8 +183,9 @@
 
 (export '(all-subunits))
 
-(defun all-subunits (unit structure)
-  (loop for subunit-name in (remove-special-operators (feature-value (get-subunits-feature unit)) +no-bindings+)
+(defun all-subunits (unit structure &optional (cxn-inventory *fcg-constructions*))
+  (loop for subunit-name in (remove-special-operators (feature-value (get-subunits-feature unit (get-configuration (visualization-configuration cxn-inventory) :selected-hierarchy)))
+                                                      +no-bindings+)
         for subunit = (structure-unit structure subunit-name)
         collect subunit
         append (all-subunits subunit structure)))
@@ -420,11 +418,11 @@
 
 ;; accessors:
 
-(export '(get-level-0-unit get-root remove-root-unit
+(export '( get-root remove-root-unit
 	  get-units-downto-level get-level-units check-hierarchy
           get-root fcg-get-boundaries root-p))
 
-(defun get-level-0-unit (structure)
+#|(defun get-level-0-unit (structure)
   ;; although a very nice definition also not very performant
   (list (find-if-not #'(lambda (unit) 
 			 (some #'(lambda (other)
@@ -433,8 +431,7 @@
                                             (get-subunits-feature other))
 					   :test #'equal))
 			       structure))
-		     structure)))
-
+		     structure)))|#
 (defun get-root (structure)
   "In the root-mode, get the root unit."
   (assoc 'root structure))
@@ -473,7 +470,7 @@
           unless (find (unit-name unit) non-superunits)
           collect unit)))
 
-(defun get-units-downto-level (level structure)
+#|(defun get-units-downto-level (level structure)
   (let ((current-level-units (get-level-0-unit structure))
         (current-result nil))        
     (dotimes (n level)
@@ -487,7 +484,7 @@
   (cond ((<= level 0) (get-level-0-unit structure))
 	(t (mappend #'(lambda (unit)
 			(subunits unit structure))
-		    (get-level-units (- level 1) structure)))))
+		    (get-level-units (- level 1) structure))))) |#
 
 ;; utilities:
 
@@ -687,43 +684,6 @@
 	    (when val (push (list (feature-name feature)
 				  val)
 			    res))))))))
-
-(defun extract-units (variables structure 
-                                &key feature-names (all-values nil) (include-parents t))
-  ;; used in parsing search experiment
-  (let ((res nil))
-    (dolist (unit structure res)
-      (let ((features 
-	     (mappend #'(lambda (var)
-			  (extract-features 
-			   var unit 
-			   :names feature-names :all-values all-values))
-		      variables)))
-	(when features
-	  (push (make-unit :name (unit-name unit))
-		res)
-	  (dolist (f features)
-	    (if (consp (feature-value f))
-              (setf (unit-feature-value (first res) (feature-name f))
-                    (union (unit-feature-value (first res) (feature-name f))
-                           (feature-value f)
-                           :test #'equal))
-              (setf (unit-feature-value (first res) (feature-name f))
-                    (feature-value f)))))))
-    (when include-parents ;;only works for one level I think
-      (dolist (unit res)
-	;;(format t "~%checking unit ~a for parents~%in structure ~a " unit structure)
-	(let* ((parent-unit (get-parent-unit unit structure))
-	       (res-parent (structure-unit res (unit-name parent-unit)))
-	       (subunits-feature-name (feature-name (get-subunits-feature parent-unit))))
-	  (cond (res-parent
-		 (pushnew (unit-name unit)
-			  (unit-feature-value res-parent subunits-feature-name)))
-		(parent-unit 
-		 (push `(,(unit-name parent-unit)
-                         (,subunits-feature-name (,(unit-name unit))))
-		       res))))))
-    res))
 
 ;; ############################################################################
 ;; Poles and coupled feature-structures
